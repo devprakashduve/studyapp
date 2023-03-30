@@ -11,6 +11,14 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <style>
+		canvas {
+			cursor: url('https://cdn-icons-png.flaticon.com/512/748/748106.png'), auto;
+		}
+	</style>
+     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.9.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  </head>
 </head>
 <body>
 
@@ -38,12 +46,99 @@
                 </ul>
             </div>
         </div>
-    </nav>
+    </nav>     
+    <canvas id="myCanvas" width="1500" height="500" style="border:1px solid red"></canvas>
 
+    <script>
+        // Get the canvas element
+        var canvas = document.getElementById("myCanvas");
+
+        // Get the canvas context (in this case, 2D)
+        var ctx = canvas.getContext("2d");
+
+        // Set the initial line style properties for the pencil effect
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "#000000";
+
+        // Set the canvas background color to white
+        ctx.fillStyle = "#FFFFFF";
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Define the mouse event handlers for drawing with the pencil effect
+        var isDrawing = false;
+        var lastX, lastY;
+        canvas.addEventListener("mousedown", function(e) {
+            isDrawing = true;
+            lastX = e.clientX - canvas.offsetLeft;
+            lastY = e.clientY - canvas.offsetTop;
+        });
+        canvas.addEventListener("mousemove", function(e) {
+            if (isDrawing) {
+                var currentX = e.clientX - canvas.offsetLeft;
+                var currentY = e.clientY - canvas.offsetTop;
+
+                ctx.beginPath(100);
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(currentX, currentY);
+                ctx.stroke();
+
+                lastX = currentX;
+                lastY = currentY;
+            }
+        });
+        canvas.addEventListener("mouseup", function() {
+            isDrawing = false;
+        });
+    </script>
+      <script>
+        // Load the MobileNet model from TensorFlow.js
+        async function loadModel() {
+          const model = await tf.loadGraphModel('https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1', { fromTFHub: true });
+          return model;
+        }
+  
+        // Predict the label of an image using the MobileNet model
+        async function predictLabel(model, canvas) {
+          // Convert the contents of the canvas to a tensor
+          const tensor = tf.browser.fromPixels(canvas);
+  
+          // Resize and normalize the tensor
+          const resized = tf.image.resizeBilinear(tensor, [224, 224]).toFloat();
+          const offset = tf.scalar(127.5);
+          const normalized = resized.div(offset).sub(tf.scalar(1.0)).expandDims();
+  
+          // Run the tensor through the model and get the top predicted label
+          const prediction = await model.predict(normalized).data();
+          const topLabelIndex = prediction.indexOf(Math.max(...prediction));
+          return topLabelIndex;
+        }
+  
+        // Set up the canvas and AI integration
+        async function init() {
+          const canvas = document.getElementById('myCanvas');
+          const context = canvas.getContext('2d');
+  
+          // Load the MobileNet model
+          const model = await loadModel();
+  
+          // Draw a rectangle on the canvas and predict its label
+          context.fillRect(50, 50, 100, 100);
+          const label = await predictLabel(model, canvas);
+          console.log(label);
+        }
+  
+        // Call the initialization function when the page is loaded
+        window.addEventListener('load', init);
+      </script>
     <!-- Banner -->
     <section id="banner">
         <div class="container">
             <div class="row">
+                <div class="col-md-12">
+                    
+                </div>
                 <div class="col-md-6">
                     <h1>Welcome to My Blog</h1>
                     <p class="lead">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec mollis libero et nibh hendrerit euismod.</p>
